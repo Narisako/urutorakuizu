@@ -1,0 +1,17 @@
+[Unit]
+Description=Iwate Quiz Battle Server
+After=network.target
+
+[Service]
+Type=simple
+User=exedev
+WorkingDirectory=/home/exedev/iwate-quiz
+Environment=NODE_ENV=production
+Environment=PORT=8000
+EnvironmentFile=/home/exedev/iwate-quiz/.env.local
+ExecStart=/usr/bin/node dist/server.js
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
