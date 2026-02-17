@@ -157,6 +157,13 @@ async function startServer() {
         currentRound.correctAnswers++;
       }
 
+      // 毎回答必ずカウントを全員にブロードキャスト
+      io.emit('answer_count', {
+        totalAnswers: currentRound.totalAnswers,
+        correctAnswers: currentRound.correctAnswers,
+        totalPlayers: getConnectedPlayerCount(),
+      });
+
       // 勝者判定: 最初の正解者
       if (isCorrect && !currentRound.winnerToken) {
         const name = players.get(token) || '不明';
@@ -178,13 +185,6 @@ async function startServer() {
         io.emit('state', buildStateDTO(currentRound));
         return;
       }
-
-      // 回答数だけ更新
-      io.emit('answer_count', {
-        totalAnswers: currentRound.totalAnswers,
-        correctAnswers: currentRound.correctAnswers,
-        totalPlayers: getConnectedPlayerCount(),
-      });
     });
 
     // ----- next_question -----
