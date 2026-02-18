@@ -119,8 +119,10 @@ async function startServer() {
       // スクリーン画面の場合はプレイヤー登録しない
       if (token === '__screen__') {
         (socket as any).playerToken = '__screen__';
+        // スクリーン接続時にラウンドをリセットして全員をwaitingに戻す
+        currentRound = null;
         socket.emit('joined', { token: '__screen__', name: 'Screen' });
-        socket.emit('state', buildStateDTO(currentRound));
+        io.emit('state', buildStateDTO(currentRound));
         return;
       }
 
