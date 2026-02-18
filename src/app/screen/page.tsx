@@ -38,6 +38,13 @@ export default function ScreenPage() {
     socketRef.current?.emit('close_round');
   }, []);
 
+  const resetGame = useCallback(() => {
+    setQuestionNumber(0);
+    setChoiceCounts([0, 0, 0, 0]);
+    setLoading(false);
+    socketRef.current?.emit('reset_game');
+  }, []);
+
   useEffect(() => {
     // PUBLIC_URLをサーバーから取得、なければブラウザのoriginを使用
     fetch('/api/config')
@@ -132,9 +139,19 @@ export default function ScreenPage() {
       {/* ヘッダー */}
       <div className="flex justify-between items-start mb-6">
         <div>
-          <h1 className="text-3xl font-black">
-            <span className="text-amber-400">🦌</span> 岩手クイズバトル
-          </h1>
+          <div className="flex items-center gap-4">
+            <h1 className="text-3xl font-black">
+              <span className="text-amber-400">🦌</span> 岩手クイズバトル
+            </h1>
+            {!isWaiting && (
+              <button
+                onClick={resetGame}
+                className="bg-slate-700 hover:bg-slate-600 text-slate-300 text-sm font-bold py-1.5 px-4 rounded-lg transition-all"
+              >
+                ⏹ イベント終了
+              </button>
+            )}
+          </div>
           <p className="text-slate-400 mt-1">
             接続中: <span className="text-white font-bold">{totalPlayers}</span>人
             {questionNumber > 0 && (

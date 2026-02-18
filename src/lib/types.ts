@@ -66,4 +66,5 @@ export interface ClientToServerEvents {
   answer: (data: { questionId: string; choiceIndex: number }) => void;
   next_question: () => void;
   close_round: () => void;
+  reset_game: () => void;
 }

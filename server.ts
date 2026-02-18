@@ -219,6 +219,13 @@ async function startServer() {
       }
     });
 
+    // ----- reset_game (イベント終了) -----
+    socket.on('reset_game', () => {
+      console.log('[Game] Reset game requested');
+      currentRound = null;
+      io.emit('state', buildStateDTO(currentRound));
+    });
+
     // ----- close_round (締め切り) -----
     socket.on('close_round', () => {
       console.log('[Game] Close round requested');
