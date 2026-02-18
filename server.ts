@@ -28,6 +28,17 @@ const usedNames = new Set<string>();
 // 現在のラウンド
 let currentRound: RoundState | null = null;
 
+function getChoiceCounts(round: RoundState | null): number[] {
+  const counts = [0, 0, 0, 0];
+  if (!round) return counts;
+  for (const [, ans] of round.answers) {
+    if (ans.choiceIndex >= 0 && ans.choiceIndex < 4) {
+      counts[ans.choiceIndex]++;
+    }
+  }
+  return counts;
+}
+
 function buildStateDTO(round: RoundState | null): RoundStateDTO {
   if (!round) {
     return {
@@ -134,12 +145,14 @@ async function startServer() {
         totalAnswers: currentRound?.totalAnswers || 0,
         correctAnswers: currentRound?.correctAnswers || 0,
         totalPlayers: getConnectedPlayerCount(),
+        choiceCounts: getChoiceCounts(currentRound),
       });
     });
 
     // ----- answer -----
     socket.on('answer', (data) => {
       const token = (socket as any).playerToken as string | undefined;
+      console.log(`[Answer] token=${token?.substring(0,8)} qid=${data?.questionId?.substring(0,8)} current=${currentRound?.questionId?.substring(0,8)} phase=${currentRound?.phase}`);
       if (!token || token === '__screen__' || !currentRound) return;
       if (currentRound.phase !== 'active') return;
       if (currentRound.questionId !== data.questionId) return;
@@ -162,28 +175,16 @@ async function startServer() {
         totalAnswers: currentRound.totalAnswers,
         correctAnswers: currentRound.correctAnswers,
         totalPlayers: getConnectedPlayerCount(),
+        choiceCounts: getChoiceCounts(currentRound),
       });
 
-      // 勝者判定: 最初の正解者
+      // 勝者候補を記録（まだrevealしない）
       if (isCorrect && !currentRound.winnerToken) {
         const name = players.get(token) || '不明';
         currentRound.winnerToken = token;
         currentRound.winnerName = name;
         currentRound.winnerAt = timestamp;
-        currentRound.phase = 'revealed';
-        console.log(`[Game] Winner: ${name} (${timestamp})`);
-
-        // 全員に通知
-        io.emit('winner', { token, name });
-        io.emit('state', buildStateDTO(currentRound));
-        return;
-      }
-
-      // 全員回答済み（勝者なし）チェック
-      if (currentRound.totalAnswers >= getConnectedPlayerCount() && !currentRound.winnerToken) {
-        currentRound.phase = 'revealed';
-        io.emit('state', buildStateDTO(currentRound));
-        return;
+        console.log(`[Game] Fastest correct: ${name} (${timestamp})`);
       }
     });
 
@@ -214,6 +215,20 @@ async function startServer() {
       }
     });
 
+    // ----- close_round (締め切り) -----
+    socket.on('close_round', () => {
+      console.log('[Game] Close round requested');
+      if (!currentRound || currentRound.phase !== 'active') return;
+      currentRound.phase = 'revealed';
+
+      if (currentRound.winnerToken && currentRound.winnerName) {
+        const winnerPayload = { token: currentRound.winnerToken, name: currentRound.winnerName };
+        io.emit('winner', winnerPayload);
+      }
+      io.emit('state', buildStateDTO(currentRound));
+      console.log(`[Game] Round closed. Winner: ${currentRound.winnerName || 'none'}`);
+    });
+
     // ----- disconnect -----
     socket.on('disconnect', () => {
       console.log(`[Socket] Disconnected: ${socket.id}`);
@@ -223,6 +238,7 @@ async function startServer() {
           totalAnswers: currentRound?.totalAnswers || 0,
           correctAnswers: currentRound?.correctAnswers || 0,
           totalPlayers: getConnectedPlayerCount(),
+          choiceCounts: getChoiceCounts(currentRound),
         });
       }, 100);
     });

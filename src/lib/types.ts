@@ -57,7 +57,7 @@ export interface ServerToClientEvents {
   state: (data: RoundStateDTO) => void;
   joined: (data: JoinResult) => void;
   winner: (data: { token: string; name: string }) => void;
-  answer_count: (data: { totalAnswers: number; correctAnswers: number; totalPlayers: number }) => void;
+  answer_count: (data: { totalAnswers: number; correctAnswers: number; totalPlayers: number; choiceCounts: number[] }) => void;
   error: (data: { message: string }) => void;
 }
 
@@ -65,4 +65,5 @@ export interface ClientToServerEvents {
   join: (data: { token?: string }) => void;
   answer: (data: { questionId: string; choiceIndex: number }) => void;
   next_question: () => void;
+  close_round: () => void;
 }

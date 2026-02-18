@@ -10,6 +10,12 @@ const CHOICE_COLORS = [
   'bg-green-500/30 border-green-500',
   'bg-yellow-500/30 border-yellow-500',
 ];
+const BAR_COLORS = [
+  'bg-red-500',
+  'bg-blue-500',
+  'bg-green-500',
+  'bg-yellow-500',
+];
 const CHOICE_LABELS = ['A', 'B', 'C', 'D'];
 
 export default function ScreenPage() {
@@ -19,16 +25,20 @@ export default function ScreenPage() {
   const [playUrl, setPlayUrl] = useState<string>('');
   const [questionNumber, setQuestionNumber] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [choiceCounts, setChoiceCounts] = useState<number[]>([0, 0, 0, 0]);
 
   const requestNext = useCallback(() => {
     if (loading) return;
     setLoading(true);
+    setChoiceCounts([0, 0, 0, 0]);
     socketRef.current?.emit('next_question');
-    // loadingは state受信時に解除
   }, [loading]);
 
+  const closeRound = useCallback(() => {
+    socketRef.current?.emit('close_round');
+  }, []);
+
   useEffect(() => {
-    // QRコード生成: 実際のブラウザURLを使用
     const url = typeof window !== 'undefined'
       ? `${window.location.origin}/play`
       : '/play';
@@ -42,7 +52,6 @@ export default function ScreenPage() {
       }).then(setQrDataUrl);
     });
 
-    // Socket.IO接続
     const socket = io({
       transports: ['websocket', 'polling'],
       reconnection: true,
@@ -51,8 +60,6 @@ export default function ScreenPage() {
     socketRef.current = socket;
 
     socket.on('connect', () => {
-      // スクリーンはプレイヤーとしてjoinしない
-      // stateを受け取るためだけにjoin
       socket.emit('join', { token: '__screen__' });
     });
 
@@ -60,30 +67,35 @@ export default function ScreenPage() {
       setState((prev) => {
         if (data.phase === 'active' && (!prev || prev.questionId !== data.questionId)) {
           setQuestionNumber((n) => n + 1);
+          setChoiceCounts([0, 0, 0, 0]);
         }
         return data;
       });
       setLoading(false);
     });
 
-    socket.on('answer_count', (data) => {
+    socket.on('answer_count', (data: any) => {
       setState((prev) => prev ? {
         ...prev,
         totalAnswers: data.totalAnswers,
         correctAnswers: data.correctAnswers,
         totalPlayers: data.totalPlayers,
       } : prev);
+      if (data.choiceCounts) {
+        setChoiceCounts(data.choiceCounts);
+      }
     });
 
-    socket.on('winner', () => {
-      // winnerはstateイベントで反映される
-    });
+    socket.on('winner', () => {});
 
-    // スペースキーで次の問題
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.code === 'Space' || e.key === ' ') {
         e.preventDefault();
         socketRef.current?.emit('next_question');
+      }
+      if (e.code === 'Enter' || e.key === 'Enter') {
+        e.preventDefault();
+        socketRef.current?.emit('close_round');
       }
     };
     window.addEventListener('keydown', handleKeyDown);
@@ -99,6 +111,7 @@ export default function ScreenPage() {
   const isActive = state?.phase === 'active';
   const isRevealed = state?.phase === 'revealed';
   const totalPlayers = state?.totalPlayers || 0;
+  const maxCount = Math.max(...choiceCounts, 1);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-6 flex flex-col">
@@ -116,7 +129,6 @@ export default function ScreenPage() {
           </p>
         </div>
 
-        {/* QRコード + URL */}
         <div className="flex items-center gap-3 bg-slate-800/80 rounded-xl p-3">
           <div className="text-right">
             <p className="text-xs text-slate-400">参加はこちら↑</p>
@@ -157,7 +169,7 @@ export default function ScreenPage() {
               </p>
             </div>
 
-            {/* 選択肢グリッド */}
+            {/* 選択肢 + リアルタイムバー */}
             <div className="grid grid-cols-2 gap-4 mb-6">
               {state.choices.map((choice, i) => {
                 let extra = '';
@@ -168,13 +180,30 @@ export default function ScreenPage() {
                     extra = ' opacity-40';
                   }
                 }
+                const count = choiceCounts[i] || 0;
+                const pct = state.totalAnswers > 0 ? (count / maxCount) * 100 : 0;
                 return (
                   <div
                     key={i}
-                    className={`border-2 rounded-2xl p-6 transition-all duration-500 ${CHOICE_COLORS[i]}${extra}`}
+                    className={`border-2 rounded-2xl p-5 transition-all duration-500 ${CHOICE_COLORS[i]}${extra}`}
                   >
-                    <span className="text-2xl font-black opacity-60 mr-3">{CHOICE_LABELS[i]}</span>
-                    <span className="text-2xl font-bold">{choice}</span>
+                    <div className="flex items-center justify-between mb-3">
+                      <div>
+                        <span className="text-2xl font-black opacity-60 mr-3">{CHOICE_LABELS[i]}</span>
+                        <span className="text-2xl font-bold">{choice}</span>
+                      </div>
+                      <span className="text-3xl font-black tabular-nums">
+                        {count}
+                        <span className="text-lg text-slate-400 ml-1">人</span>
+                      </span>
+                    </div>
+                    {/* バー */}
+                    <div className="h-4 bg-slate-700/50 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full rounded-full transition-all duration-300 ease-out ${BAR_COLORS[i]}`}
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
                   </div>
                 );
               })}
@@ -202,6 +231,16 @@ export default function ScreenPage() {
                     ({state.correctAnswers}/{state.totalAnswers})
                   </span>
                 </div>
+              )}
+
+              {/* 締め切るボタン（active時） */}
+              {isActive && (
+                <button
+                  onClick={closeRound}
+                  className="bg-rose-600 hover:bg-rose-500 text-white text-xl font-black py-3 px-8 rounded-2xl transition-all hover:scale-105 active:scale-95 animate-pulse"
+                >
+                  🔔 締め切る
+                </button>
               )}
 
               {/* 次の問題ボタン（revealed時） */}
