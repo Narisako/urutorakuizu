@@ -167,11 +167,26 @@ const FALLBACK_RAW = [
 
 let fallbackIndex = 0;
 
+function shuffleChoices(raw: typeof FALLBACK_RAW[number]): { choices: string[]; answer_index: number } {
+  const indices = [0, 1, 2, 3];
+  // Fisher-Yates shuffle
+  for (let i = indices.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [indices[i], indices[j]] = [indices[j], indices[i]];
+  }
+  const choices = indices.map(i => raw.choices[i]);
+  const answer_index = indices.indexOf(raw.answer_index);
+  return { choices, answer_index };
+}
+
 export function getFallbackQuestion(): QuizQuestion {
   const raw = FALLBACK_RAW[fallbackIndex % FALLBACK_RAW.length];
   fallbackIndex++;
+  const { choices, answer_index } = shuffleChoices(raw);
   return {
     ...raw,
+    choices,
+    answer_index,
     questionId: uuidv4(),
   };
 }
