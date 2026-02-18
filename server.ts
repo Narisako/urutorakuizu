@@ -124,23 +124,17 @@ async function startServer() {
         return;
       }
 
-      // 既存tokenの復元
-      if (token && players.has(token)) {
-        name = players.get(token)!;
-        console.log(`[Socket] Rejoined: ${name} (${token.substring(0, 8)}...)`);
-      } else {
-        // 新規参加者
-        token = uuidv4();
-        const picked = pickAnimalName(usedNames);
-        if (!picked) {
-          socket.emit('error', { message: '参加者上限に達しました' });
-          return;
-        }
-        name = picked;
-        players.set(token, name);
-        usedNames.add(name);
-        console.log(`[Socket] New player: ${name} (${token.substring(0, 8)}...)`);
+      // 常に新しいtokenと名前を割り当てる
+      token = uuidv4();
+      const picked = pickAnimalName(usedNames);
+      if (!picked) {
+        socket.emit('error', { message: '参加者上限に達しました' });
+        return;
       }
+      name = picked;
+      players.set(token, name);
+      usedNames.add(name);
+      console.log(`[Socket] New player: ${name} (${token.substring(0, 8)}...)`);
 
       // tokenをソケットに紐づけ
       (socket as any).playerToken = token;
