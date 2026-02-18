@@ -259,7 +259,7 @@ async function startServer() {
   await preloadQuestions();
 
   httpServer.listen(port, () => {
-    console.log(`\n🎯 岩手クイズサーバ起動!`);
+    console.log(`\n🎯 アジャイルクイズサーバ起動!`);
     console.log(`   Screen: http://localhost:${port}/screen`);
     console.log(`   Play:   http://localhost:${port}/play`);
     console.log(`   Port:   ${port}\n`);

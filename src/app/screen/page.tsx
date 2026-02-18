@@ -141,7 +141,7 @@ export default function ScreenPage() {
         <div>
           <div className="flex items-center gap-4">
             <h1 className="text-3xl font-black">
-              <span className="text-amber-400">🦌</span> 岩手クイズバトル
+              <span className="text-amber-400">🚀</span> アジャイルクイズバトル
             </h1>
             {!isWaiting && (
               <button
@@ -175,8 +175,8 @@ export default function ScreenPage() {
       <div className="flex-1 flex flex-col justify-center">
         {isWaiting && (
           <div className="text-center animate-fade-in">
-            <div className="text-8xl mb-8">🦌</div>
-            <h2 className="text-5xl font-black mb-4">岩手クイズバトル</h2>
+            <div className="text-8xl mb-8">🚀</div>
+            <h2 className="text-5xl font-black mb-4">アジャイルクイズバトル</h2>
             <p className="text-2xl text-slate-400 mb-8">
               QRコードを読み取って参加してください！
             </p>
