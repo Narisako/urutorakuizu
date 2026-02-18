@@ -39,18 +39,32 @@ export default function ScreenPage() {
   }, []);
 
   useEffect(() => {
-    const url = typeof window !== 'undefined'
-      ? `${window.location.origin}/play`
-      : '/play';
-    setPlayUrl(url);
-
-    import('qrcode').then((QRCode) => {
-      QRCode.toDataURL(url, {
-        width: 200,
-        margin: 2,
-        color: { dark: '#ffffff', light: '#00000000' },
-      }).then(setQrDataUrl);
-    });
+    // PUBLIC_URLをサーバーから取得、なければブラウザのoriginを使用
+    fetch('/api/config')
+      .then(r => r.json())
+      .then(cfg => {
+        const base = cfg.publicUrl || window.location.origin;
+        const url = `${base}/play`;
+        setPlayUrl(url);
+        import('qrcode').then((QRCode) => {
+          QRCode.toDataURL(url, {
+            width: 200,
+            margin: 2,
+            color: { dark: '#ffffff', light: '#00000000' },
+          }).then(setQrDataUrl);
+        });
+      })
+      .catch(() => {
+        const url = `${window.location.origin}/play`;
+        setPlayUrl(url);
+        import('qrcode').then((QRCode) => {
+          QRCode.toDataURL(url, {
+            width: 200,
+            margin: 2,
+            color: { dark: '#ffffff', light: '#00000000' },
+          }).then(setQrDataUrl);
+        });
+      });
 
     const socket = io({
       transports: ['websocket', 'polling'],

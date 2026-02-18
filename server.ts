@@ -87,7 +87,15 @@ let io: SocketIOServer<ClientToServerEvents, ServerToClientEvents>;
 async function startServer() {
   await app.prepare();
 
+  const publicUrl = process.env.PUBLIC_URL || '';
+
   const httpServer = createServer((req, res) => {
+    // 公開URL設定を返すAPI
+    if (req.url === '/api/config') {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ publicUrl }));
+      return;
+    }
     handle(req, res);
   });
 
