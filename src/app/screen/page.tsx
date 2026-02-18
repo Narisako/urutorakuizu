@@ -48,7 +48,7 @@ export default function ScreenPage() {
         setPlayUrl(url);
         import('qrcode').then((QRCode) => {
           QRCode.toDataURL(url, {
-            width: 200,
+            width: 800,
             margin: 2,
             color: { dark: '#ffffff', light: '#00000000' },
           }).then(setQrDataUrl);
@@ -59,7 +59,7 @@ export default function ScreenPage() {
         setPlayUrl(url);
         import('qrcode').then((QRCode) => {
           QRCode.toDataURL(url, {
-            width: 200,
+            width: 800,
             margin: 2,
             color: { dark: '#ffffff', light: '#00000000' },
           }).then(setQrDataUrl);
@@ -149,7 +149,7 @@ export default function ScreenPage() {
             <p className="text-sm font-mono text-amber-400 break-all max-w-[200px]">{playUrl}</p>
           </div>
           {qrDataUrl && (
-            <img src={qrDataUrl} alt="QR" className="w-20 h-20" />
+            <img src={qrDataUrl} alt="QR" className="w-80 h-80" />
           )}
         </div>
       </div>
