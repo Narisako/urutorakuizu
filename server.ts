@@ -259,7 +259,7 @@ async function startServer() {
   await preloadQuestions();
 
   httpServer.listen(port, () => {
-    console.log(`\n🎯 名古屋クイズサーバ起動!`);
+    console.log(`\n✈️ 榎本さんクイズサーバ起動!`);
     console.log(`   Screen: http://localhost:${port}/screen`);
     console.log(`   Play:   http://localhost:${port}/play`);
     console.log(`   Port:   ${port}\n`);
