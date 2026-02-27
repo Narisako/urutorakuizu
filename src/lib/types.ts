@@ -6,7 +6,7 @@ export interface QuizQuestion {
   choices: string[];
   answer_index: number;
   explanation: string;
-  difficulty: 'easy' | 'normal';
+  difficulty: 'easy' | 'normal' | 'hard';
   category: string;
 }
 

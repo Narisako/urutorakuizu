@@ -91,8 +91,8 @@ export default function PlayPage() {
     return (
       <div className="min-h-screen flex items-center justify-center p-4">
         <div className="text-center">
-          <div className="text-6xl mb-6">🚀</div>
-          <h1 className="text-2xl font-bold mb-2">アジャイルクイズバトル</h1>
+          <div className="text-6xl mb-6">🏯</div>
+          <h1 className="text-2xl font-bold mb-2">名古屋クイズバトル</h1>
           <div className="bg-slate-800 rounded-2xl p-6 mt-4">
             <p className="text-slate-400 text-sm">あなたの名前</p>
             <p className="text-3xl font-black text-amber-400 mt-1">{name}</p>
