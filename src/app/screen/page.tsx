@@ -29,8 +29,8 @@ function parseQuestions(text: string): { questions: ParsedQuestion[]; errors: st
   const errors: string[] = [];
   const questions: ParsedQuestion[] = [];
 
-  // Qの前で分割（Q1, Q2, ...)
-  const blocks = text.split(/(?=Q\d+[\s　])/i).filter(b => b.trim());
+  // Qの前で分割（Q1, Q2, Q1., Q1． など対応)
+  const blocks = text.split(/(?=Q\d+[.．]?[\s　])/i).filter(b => b.trim());
 
   if (blocks.length === 0) {
     errors.push('問題が見つかりません。Q1 で始めてください。');
@@ -39,7 +39,7 @@ function parseQuestions(text: string): { questions: ParsedQuestion[]; errors: st
 
   for (const block of blocks) {
     // Q番号を抽出
-    const qMatch = block.match(/^Q(\d+)[\s　]+/i);
+    const qMatch = block.match(/^Q(\d+)[.．]?[\s　]+/i);
     if (!qMatch) continue;
     const qNum = parseInt(qMatch[1]);
 
@@ -68,7 +68,7 @@ function parseQuestions(text: string): { questions: ParsedQuestion[]; errors: st
       const choicePattern = new RegExp(`A${qNum}-${ci}[\\s　]+`, 'i');
       const nextPattern = ci < 4
         ? new RegExp(`A${qNum}-${ci + 1}[\\s　]`, 'i')
-        : /正解[\s　]/;
+        : /正解[\s　::：]/;
       
       const cMatch = rest.match(choicePattern);
       if (!cMatch || cMatch.index === undefined) {
@@ -93,8 +93,8 @@ function parseQuestions(text: string): { questions: ParsedQuestion[]; errors: st
     }
     if (!ok) continue;
 
-    // 正解を抽出
-    const answerPattern = new RegExp(`正解[\\s　]+A${qNum}-(\\d)`, 'i');
+    // 正解を抽出（正解 A1-3 / 正解：A1-3 / 正解:A1-3 など対応）
+    const answerPattern = new RegExp(`正解[\\s　::：]*A${qNum}-(\\d)`, 'i');
     const ansMatch = rest.match(answerPattern);
     if (!ansMatch) {
       errors.push(`Q${qNum}: 正解が見つかりません（例: 正解 A${qNum}-1）`);
