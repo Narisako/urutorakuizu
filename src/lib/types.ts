@@ -52,6 +52,14 @@ export interface JoinResult {
   name: string;
 }
 
+/** set_questions で送るデータ */
+export interface CustomQuestion {
+  question: string;
+  choices: string[];
+  answer_index: number;
+  explanation: string;
+}
+
 // Socket.IO イベント型
 export interface ServerToClientEvents {
   state: (data: RoundStateDTO) => void;
@@ -59,6 +67,8 @@ export interface ServerToClientEvents {
   winner: (data: { token: string; name: string }) => void;
   answer_count: (data: { totalAnswers: number; correctAnswers: number; totalPlayers: number; choiceCounts: number[] }) => void;
   error: (data: { message: string }) => void;
+  questions_set: (data: { count: number }) => void;
+  no_more_questions: () => void;
 }
 
 export interface ClientToServerEvents {
@@ -67,4 +77,5 @@ export interface ClientToServerEvents {
   next_question: () => void;
   close_round: () => void;
   reset_game: () => void;
+  set_questions: (data: CustomQuestion[]) => void;
 }

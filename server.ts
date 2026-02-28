@@ -4,7 +4,7 @@ import next from 'next';
 import { Server as SocketIOServer } from 'socket.io';
 import { v4 as uuidv4 } from 'uuid';
 import { pickAnimalName } from './src/lib/animals';
-import { getNextQuestion, preloadQuestions } from './src/lib/quiz-generator';
+// カスタム問題キュー（LLM不要）
 import type {
   QuizQuestion,
   RoundState,
@@ -24,6 +24,10 @@ const handle = app.getRequestHandler();
 // プレイヤー管理: token → name
 const players = new Map<string, string>();
 const usedNames = new Set<string>();
+
+// カスタム問題キュー
+let customQuestions: { question: string; choices: string[]; answer_index: number }[] = [];
+let customQuestionIndex = 0;
 
 // 現在のラウンド
 let currentRound: RoundState | null = null;
@@ -192,37 +196,52 @@ async function startServer() {
       }
     });
 
+    // ----- set_questions -----
+    socket.on('set_questions', (data) => {
+      console.log(`[Game] Received ${data.length} custom questions`);
+      customQuestions = data;
+      customQuestionIndex = 0;
+      socket.emit('questions_set', { count: data.length });
+    });
+
     // ----- next_question -----
     socket.on('next_question', async () => {
-      console.log('[Game] Next question requested');
-      try {
-        const q = await getNextQuestion();
-        currentRound = {
-          questionId: q.questionId,
-          question: q.question,
-          choices: q.choices,
-          answer_index: q.answer_index,
-          explanation: q.explanation,
-          answeredTokens: new Set(),
-          answers: new Map(),
-          winnerToken: null,
-          winnerName: null,
-          winnerAt: null,
-          totalAnswers: 0,
-          correctAnswers: 0,
-          phase: 'active',
-        };
-        io.emit('state', buildStateDTO(currentRound));
-        console.log(`[Game] Question: ${q.question.substring(0, 50)}...`);
-      } catch (err) {
-        console.error('[Game] Failed to get next question:', err);
+      console.log(`[Game] Next question requested (${customQuestionIndex}/${customQuestions.length})`);
+
+      if (customQuestionIndex >= customQuestions.length) {
+        console.log('[Game] No more questions');
+        socket.emit('no_more_questions');
+        return;
       }
+
+      const q = customQuestions[customQuestionIndex];
+      customQuestionIndex++;
+
+      currentRound = {
+        questionId: uuidv4(),
+        question: q.question,
+        choices: q.choices,
+        answer_index: q.answer_index,
+        explanation: '',
+        answeredTokens: new Set(),
+        answers: new Map(),
+        winnerToken: null,
+        winnerName: null,
+        winnerAt: null,
+        totalAnswers: 0,
+        correctAnswers: 0,
+        phase: 'active',
+      };
+      io.emit('state', buildStateDTO(currentRound));
+      console.log(`[Game] Question ${customQuestionIndex}/${customQuestions.length}: ${q.question.substring(0, 50)}...`);
     });
 
     // ----- reset_game (イベント終了) -----
     socket.on('reset_game', () => {
       console.log('[Game] Reset game requested');
       currentRound = null;
+      customQuestions = [];
+      customQuestionIndex = 0;
       io.emit('state', buildStateDTO(currentRound));
     });
 
@@ -255,11 +274,8 @@ async function startServer() {
     });
   });
 
-  // クイズ事前生成
-  await preloadQuestions();
-
   httpServer.listen(port, () => {
-    console.log(`\n🎯 名古屋クイズサーバ起動!`);
+    console.log(`\n⚡ ４択早押しバトル サーバ起動!`);
     console.log(`   Screen: http://localhost:${port}/screen`);
     console.log(`   Play:   http://localhost:${port}/play`);
     console.log(`   Port:   ${port}\n`);
