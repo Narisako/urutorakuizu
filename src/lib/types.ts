@@ -67,4 +67,5 @@ export interface ClientToServerEvents {
   next_question: () => void;
   close_round: () => void;
   reset_game: () => void;
+  reload_questions: () => void;
 }

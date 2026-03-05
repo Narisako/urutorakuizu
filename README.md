@@ -1,4 +1,4 @@
-# 🦌 岩手クイズバトル
+# 🎯 4択早押しクイズバトル
 
 講演会・イベント向け「スマホ参加型・早押し4択クイズ」Webアプリ。
 参加者はQRコードからスマホでアクセス、会場スクリーン（PCブラウザ）に同じ問題が投影されます。
@@ -7,8 +7,7 @@
 
 - **スマホ参加型**: QRコードで即参加、アプリインストール不要
 - **早押しクイズ**: サーバ受信時刻で最速正解者を確定
-- **AI自動生成**: Anthropic Claude で岩手県ローカルクイズを自動生成
-- **フォールバック**: LLM失敗時は内蔵20問から出題（API key不要でも動作）
+- **簡単なクイズ管理**: CSVファイルでクイズを簡単に編集・追加
 - **100名同時接続**: Socket.IOによるリアルタイム通信
 - **勝者演出**: 最速正解者のスマホが赤く点滅、スクリーンに勝者名を大表示
 
@@ -32,7 +31,7 @@ git clone https://github.com/Narisako/urutorakuizu.git
 cd urutorakuizu
 npm install
 cp .env.example .env.local
-# .env.local を編集して LLM_API_KEY を設定（任意）
+# questions.csv を編集してクイズを追加・編集
 npm run dev
 ```
 
@@ -44,9 +43,6 @@ npm run dev
 
 | 変数 | 説明 | デフォルト |
 |------|------|-----------|
-| `LLM_PROVIDER` | LLMプロバイダ | `anthropic` |
-| `LLM_API_KEY` | APIキー（未設定時はフォールバック使用） | - |
-| `LLM_MODEL` | モデル名 | `claude-sonnet-4-20250514` |
 | `PORT` | サーバーポート | `8000` |
 | `PUBLIC_URL` | 公開URL（QRコード生成用） | `http://localhost:8000` |
 
@@ -61,8 +57,8 @@ npm run dev
 ┌──────────────┐    Socket.IO     │  Socket.IO   │
 │  /play       │◄────────────────►│  + Next.js   │
 │  (スマホ×100) │                  │              │
-└──────────────┘                  │  Quiz Queue  │──► Anthropic API
-                                  │  (3問バッファ) │     (フォールバック内蔵)
+└──────────────┘                  │  Quiz Data   │──► questions.csv
+                                  │  (CSVファイル) │
                                   └──────────────┘
 ```
 
@@ -83,12 +79,34 @@ npm run dev
 各ラウンドは `waiting` → `active` → `revealed` のフェーズ遷移。
 勝者判定はサーバ受信時刻のみで確定（クライアント時刻不使用）。
 
-### クイズ生成キュー
+### クイズデータ管理
 
-1. サーバ起動時に3問を事前生成
-2. 出題ごとにキューから取り出し、バックグラウンドで補充
-3. LLM失敗時はフォールバック問題（20問内蔵）を使用
-4. 常に2〜3問の在庫を維持
+1. `questions.csv` にクイズデータを記述（1行1問、CSV形式）
+2. サーバ起動時にCSVファイルから読み込み
+3. クイズはランダムに出題される
+
+### クイズのフォーマット
+
+`questions.csv` はCSV形式（カンマ区切り）で記述してください：
+
+```csv
+問題文,選択肢1,選択肢2,選択肢3,選択肢4,正解番号
+日本で一番高い山は？,富士山,北岳,槍ヶ岳,立山,1
+日本の首都はどこ？,東京,大阪,京都,名古屋,1
+```
+
+**フォーマット：**
+- 1行目: ヘッダー行（省略可）
+- 2行目以降: 問題データ
+  - 列1: 問題文
+  - 列2〜5: 選択肢1〜4
+  - 列6: 正解番号（1〜4）
+
+**ルール：**
+- 正解番号は 1, 2, 3, 4 のいずれか（1=選択肢1が正解）
+- `#` で始まる行はコメント（無視される）
+- 空行は無視される
+- Excel や Google スプレッドシートで編集可能
 
 ## 🚢 デプロイ
 
@@ -97,13 +115,13 @@ npm run dev
 1. GitHubリポジトリを接続
 2. Build Command: `npm install && npm run build`
 3. Start Command: `npm start`
-4. Environment Variables に `LLM_API_KEY` 等を設定
+4. Environment Variables に `PORT` や `PUBLIC_URL` を設定
 
 ### Fly.io
 
 ```bash
 fly launch
-fly secrets set LLM_API_KEY=sk-ant-...
+fly secrets set PUBLIC_URL=https://your-app.fly.dev
 fly deploy
 ```
 

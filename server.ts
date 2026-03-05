@@ -4,7 +4,7 @@ import next from 'next';
 import { Server as SocketIOServer } from 'socket.io';
 import { v4 as uuidv4 } from 'uuid';
 import { pickAnimalName } from './src/lib/animals';
-import { getNextQuestion, preloadQuestions } from './src/lib/quiz-generator';
+import { getNextQuestion, loadQuestions } from './src/lib/quiz-loader';
 import type {
   QuizQuestion,
   RoundState,
@@ -193,10 +193,10 @@ async function startServer() {
     });
 
     // ----- next_question -----
-    socket.on('next_question', async () => {
+    socket.on('next_question', () => {
       console.log('[Game] Next question requested');
       try {
-        const q = await getNextQuestion();
+        const q = getNextQuestion();
         currentRound = {
           questionId: q.questionId,
           question: q.question,
@@ -224,6 +224,17 @@ async function startServer() {
       console.log('[Game] Reset game requested');
       currentRound = null;
       io.emit('state', buildStateDTO(currentRound));
+    });
+
+    // ----- reload_questions (クイズデータ再読み込み) -----
+    socket.on('reload_questions', async () => {
+      console.log('[Admin] Reload questions requested');
+      try {
+        await loadQuestions();
+        console.log('[Admin] Questions reloaded successfully');
+      } catch (err) {
+        console.error('[Admin] Failed to reload questions:', err);
+      }
     });
 
     // ----- close_round (締め切り) -----
@@ -255,11 +266,11 @@ async function startServer() {
     });
   });
 
-  // クイズ事前生成
-  await preloadQuestions();
+  // クイズをJSONから読み込み
+  await loadQuestions();
 
   httpServer.listen(port, () => {
-    console.log(`\n🎯 名古屋クイズサーバ起動!`);
+    console.log(`\n🎯 4択早押しクイズサーバ起動!`);
     console.log(`   Screen: http://localhost:${port}/screen`);
     console.log(`   Play:   http://localhost:${port}/play`);
     console.log(`   Port:   ${port}\n`);
